@@ -315,7 +315,7 @@ class DependableSoapClient extends SoapClient
         $options[CURLOPT_HTTPHEADER] = $soapRequest->getHeaders();
         $options[CURLOPT_POSTFIELDS] = $soapRequest->getContents();
 
-        $this->log('Request headers: ' . $soapRequest->getHeaders());
+        $this->log('Request headers: ' . join("\n", $soapRequest->getHeaders()));
         $this->log('Request body: ' . $soapRequest->getContents());
 
         if ($this->sslVersion !== null) {
