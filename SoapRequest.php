@@ -87,7 +87,7 @@ class SoapRequest
             $content[] = '--'.static::BOUNDARY;
             $content[] = 'Content-Type: '.$attachment->getMimeType();
             $content[] = 'Content-ID: '.$attachment->getContentID();
-            $content[] = 'Content-Transfer-Encoding: base64 ';
+            $content[] = 'Content-Transfer-Encoding: base64';
             $content[] = '';
             $content[] = base64_encode($attachment->getContents());
         }
