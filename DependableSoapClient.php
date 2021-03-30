@@ -551,7 +551,9 @@ class DependableSoapClient extends SoapClient
      */
     protected function log($message, $level = 'trace')
     {
-        $callback = static::$logCallback;
-        $callback($message, $level);
+        if (is_callable(static::$logCallback)) {
+            $callback = static::$logCallback;
+            $callback($message, $level);
+        }
     }
 }
