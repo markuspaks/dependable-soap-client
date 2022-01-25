@@ -92,6 +92,8 @@ class SoapRequest
             $content[] = base64_encode($attachment->getContents());
         }
 
+        $content[] = '--'.static::BOUNDARY.'--';
+
         return join("\r\n", $content);
     }
 
