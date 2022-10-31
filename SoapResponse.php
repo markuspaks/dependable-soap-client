@@ -44,6 +44,9 @@ class SoapResponse
             $this->xml = $part->getContent();
 
             $this->attachments = $message->getAllAttachmentParts();
+
+            // Take first part (xml) off
+            array_shift($this->attachments);
         } else {
             $this->xml = $this->response;
         }
