@@ -38,7 +38,7 @@ class SoapResponse
             $mailHeader = join("", $this->headers)."\r\n";
 
             $mailMessage = $mailHeader.$this->response;
-            $message = Message::from($mailMessage);
+            $message = Message::from($mailMessage, true);
 
             $part = $message->getPart(1);
             $this->xml = $part->getContent();
