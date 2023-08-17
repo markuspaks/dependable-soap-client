@@ -11,116 +11,117 @@ use stdClass;
 
 class DependableSoapClient extends SoapClient
 {
-
     /**
      * Debug level
      *
      * @var int
      */
-    public $debugLevel = 0;
+    public int $debugLevel = 0;
 
     /**
      * Preload wsdl files when creating the client (before actual request)
      *
      * @var bool
      */
-    public $preloadWsdl = true;
+    public bool $preloadWsdl = true;
 
     /**
      * SOAP endPoint uri
      *
-     * @var string
+     * @var ?string
      */
-    public $endPoint;
+    public ?string $endPoint = null;
 
     /**
      * Should SoapFault be thrown or returned
      *
-     * @var boolean
+     * @var bool
      */
-    public $exceptions = true;
+    public bool $exceptions = true;
 
     /**
      * Sets ssl options verify_peer to false and allow_self_signed to true
      *
-     * @var boolean
+     * @var bool
      */
-    public $insecure = true;
+    public bool $insecure = true;
+
+    public ?string $localCertificate = null;
 
     /**
      * Override default SSL version
      *
-     * @var int
+     * @var ?int
      */
-    public $sslVersion = null;
+    public ?int $sslVersion = null;
 
     /**
      * Http authentication options (username, password)
-     * @var array
+     * @var ?array
      */
-    public $httpAuthenticate = null;
+    public ?array $httpAuthenticate = null;
 
     /**
      * SOAP header authentication (username, password)
-     * @var array
+     * @var ?array
      */
-    public $soapAuthenticate = null;
+    public ?array $soapAuthenticate = null;
 
     /**
      * Client status
      *
      * @var int
      */
-    public $status = self::STATUS_OK;
+    public int $status = self::STATUS_OK;
 
     /**
      * Requests timeout in seconds
      *
-     * @var int
+     * @var ?int
      */
-    public $timeout = null;
+    public ?int $timeout = null;
 
     /**
      * Wsdl Cache
      *
-     * @var integer
+     * @var int
      */
-    public $wsdlCache;
+    public int $wsdlCache = WSDL_CACHE_NONE;
 
-    protected $currentRequest;
+    protected ?SoapRequest $currentRequest = null;
 
-    protected $currentResponse;
+    protected ?SoapResponse $currentResponse = null;
 
     /**
      * Total soap calls made
      *
      * @var int
      */
-    public static $totalCalls = 0;
+    public static int $totalCalls = 0;
 
     /**
      * Total time soap calls took
      *
-     * @var integer
+     * @var float
      */
-    public static $totalTime = 0;
+    public static float $totalTime = 0;
 
     /**
-     * @var Closure
+     * @var ?Closure
      */
-    protected static $logCallback;
+    protected static ?Closure $logCallback = null;
 
-    const DEBUG_BASIC = 1;
-    const DEBUG_WSDL = 2;
-    const DEBUG_REQUEST = 4;
-    const DEBUG_RESPONSE = 8;
-    const DEBUG_RESPONSE_OBJECT = 16;
-    const DEBUG_TIMINGS = 32;
+    protected const DEBUG_BASIC = 1;
+    protected const DEBUG_WSDL = 2;
+    protected const DEBUG_REQUEST = 4;
+    protected const DEBUG_RESPONSE = 8;
+    protected const DEBUG_RESPONSE_OBJECT = 16;
+    protected const DEBUG_TIMINGS = 32;
 
-    const DEBUG_ALL = self::DEBUG_BASIC | self::DEBUG_WSDL | self::DEBUG_REQUEST | self::DEBUG_RESPONSE | self::DEBUG_RESPONSE_OBJECT | self::DEBUG_TIMINGS;
+    protected const DEBUG_ALL = self::DEBUG_BASIC | self::DEBUG_WSDL | self::DEBUG_REQUEST | self::DEBUG_RESPONSE | self::DEBUG_RESPONSE_OBJECT | self::DEBUG_TIMINGS;
 
-    const STATUS_OK = 0;
-    const STATUS_ERROR = 1;
+    public const STATUS_OK = 0;
+    public const STATUS_ERROR = 1;
 
     public function __construct($wsdl, array $options = null)
     {
@@ -143,7 +144,7 @@ class DependableSoapClient extends SoapClient
 
         // Debug wsdl info
         if ($this->debugLevel & self::DEBUG_WSDL) {
-            $this->log('WSDL path: '.$wsdl);
+            $this->log('WSDL path: ' . $wsdl);
         }
 
         if ($this->preloadWsdl === true) {
@@ -157,13 +158,15 @@ class DependableSoapClient extends SoapClient
         // Bad PHP, bad. This is NOT a feature!
         $options['features'] = SOAP_SINGLE_ELEMENT_ARRAYS;
 
+        $this->localCertificate = $options['local_cert'];
+
         // Construct parent class
         parent::__construct($wsdl, $options);
 
         // Debug wsdl info
         if ($this->debugLevel & self::DEBUG_WSDL) {
-            $this->log("SOAP Types: ".print_r($this->__getTypes(), true));
-            $this->log("SOAP Functions: ".print_r($this->__getFunctions(), true));
+            $this->log("SOAP Types: " . print_r($this->__getTypes(), true));
+            $this->log("SOAP Functions: " . print_r($this->__getFunctions(), true));
         }
     }
 
@@ -172,13 +175,15 @@ class DependableSoapClient extends SoapClient
      *
      * @param $wsdl
      * @param $options
-     * @param  null|string  $targetWsdl
+     * @param  string|null  $targetWsdl
      * @return null|string
      */
-    public function preloadWsdl($wsdl, &$options, $targetWsdl = null)
+    public function preloadWsdl($wsdl, &$options, ?string $targetWsdl = null): ?string
     {
         // WSDL cache path
-        $cachedPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.($targetWsdl !== null ? $targetWsdl : md5($wsdl).'.wsdl');
+        $cachedPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . ($targetWsdl !== null ? $targetWsdl : md5(
+                    $wsdl
+                ) . '.wsdl');
 
         // Unlink WSDL cache
         if ($options['cache_wsdl'] == WSDL_CACHE_NONE) {
@@ -203,7 +208,7 @@ class DependableSoapClient extends SoapClient
             if (count($matches) > 1) {
                 foreach ($matches[1] as $subWsdl) {
                     //Replace everything after last / with the imported schema file name
-                    $subWsdlSrc = preg_replace('/\/([^\/]*)$/', '/'.$subWsdl, $wsdl);
+                    $subWsdlSrc = preg_replace('/\/([^\/]*)$/', '/' . $subWsdl, $wsdl);
                     $this->preloadWsdl($subWsdlSrc, $options, $subWsdl);
                 }
             }
@@ -217,7 +222,7 @@ class DependableSoapClient extends SoapClient
             } else {
                 // Log error
                 $this->log(
-                    'Unable to write cached file '.$cachedPath.' for wsdl '.$wsdl.'',
+                    'Unable to write cached file "' . $cachedPath . '" for wsdl "' . $wsdl . '"',
                     'error'
                 );
 
@@ -240,14 +245,14 @@ class DependableSoapClient extends SoapClient
     /**
      * Call soap function as callable
      *
-     * @param  string  $func
+     * @param  string  $name
      * @param  mixed  $args
      * @return mixed
      */
-    public function __call($func, $args)
+    public function __call(string $name, $args): mixed
     {
         $args = [$args]; //This was done in soapCall, but caused issues with wsdl that uses parts
-        array_unshift($args, $func);
+        array_unshift($args, $name);
         return call_user_func_array([$this, '__soapCall'], $args);
     }
 
@@ -258,14 +263,19 @@ class DependableSoapClient extends SoapClient
      * @param  string  $location
      * @param  string  $action
      * @param  int  $version
-     * @param  int  $one_way
-     * @return string
+     * @param  bool  $oneWay
+     * @return string|null
      */
-    public function __doRequest($request, $location, $action, $version, $one_way = 0)
-    {
+    public function __doRequest(
+        string $request,
+        string $location,
+        string $action,
+        int $version,
+        bool $oneWay = false
+    ): ?string {
         $response = $this->request($location, $request, true);
 
-        if (!$one_way) {
+        if (!$oneWay) {
             return $response;
         }
 
@@ -277,12 +287,12 @@ class DependableSoapClient extends SoapClient
         return $this->getSoapRequest()->addAttachment($file);
     }
 
-    public function getAttachments()
+    public function getAttachments(): array
     {
         return $this->currentResponse->getAttachments();
     }
 
-    public function setHttpAuthentication($username, $password)
+    public function setHttpAuthentication($username, $password): void
     {
         $this->getSoapRequest()->setHttpAuthentication($username, $password);
     }
@@ -291,12 +301,11 @@ class DependableSoapClient extends SoapClient
      * Perform cUrl request to the given url
      *
      * @param $url
-     * @param  null|string  $request
-     * @param  null|array  $header
+     * @param  string|null  $request
      * @param  bool  $isPostRequest
      * @return mixed|null
      */
-    public function request($url, $request = null, $isPostRequest = false)
+    public function request($url, ?string $request = null, bool $isPostRequest = false): ?string
     {
         $soapRequest = $this->getSoapRequest();
 
@@ -310,6 +319,10 @@ class DependableSoapClient extends SoapClient
 
         if ($isPostRequest) {
             $options[CURLOPT_POST] = 1;
+        }
+
+        if ($this->localCertificate) {
+            $options[CURLOPT_SSLCERT] = $this->localCertificate;
         }
 
         $options[CURLOPT_HTTPHEADER] = $soapRequest->getHeaders();
@@ -366,7 +379,7 @@ class DependableSoapClient extends SoapClient
 
         curl_close($resource);
 
-        $this->log('Result: '.$result);
+        $this->log('Result: ' . $result);
 
         $this->currentRequest = null;
 
@@ -376,20 +389,17 @@ class DependableSoapClient extends SoapClient
     /**
      * Inner function for soap call
      *
-     * @param  string  $function_name
-     * @param  mixed  $arguments
-     * @param  array  $options
-     * @param  array  $input_headers
-     * @param  array  $output_headers
-     * @return mixed
+     * @param  array  $inputHeaders
+     * @param  array  $outputHeaders
+     * @throws SoapFault
      */
     public function __soapCall(
-        $function_name,
-        $arguments,
-        $options = null,
-        $input_headers = null,
-        &$output_headers = null
-    ) {
+        string $name,
+        array $args,
+        ?array $options = null,
+        $inputHeaders = null,
+        &$outputHeaders = null
+    ): mixed {
         $debug = $this->debugLevel;
 
         if (is_array($options) && isset($options['debug'])) {
@@ -400,8 +410,8 @@ class DependableSoapClient extends SoapClient
         }
 
         if (is_array($this->soapAuthenticate)) {
-            $input_headers = [];
-            $input_headers[] = $this->generateBasicAuthenticationHeader(
+            $inputHeaders = [];
+            $inputHeaders[] = $this->generateBasicAuthenticationHeader(
                 $this->soapAuthenticate['username'],
                 $this->soapAuthenticate['password']
             );
@@ -411,7 +421,7 @@ class DependableSoapClient extends SoapClient
         $callStart = microtime(true);
 
         // Actual call
-        $answer = parent::__soapCall($function_name, $arguments, $options, $input_headers, $output_headers);
+        $answer = parent::__soapCall($name, $args, $options, $inputHeaders, $outputHeaders);
 
         // End time
         $callEnd = microtime(true);
@@ -419,12 +429,12 @@ class DependableSoapClient extends SoapClient
         $callTime = $callEnd - $callStart;
 
         $this->log(
-            'Soap request to '.$function_name.' took '.round($callTime, 2)
-            .' sec ('.parent::__getLastRequest().')',
+            'Soap request to ' . $name . ' took ' . round($callTime, 2)
+            . ' sec (' . parent::__getLastRequest() . ')',
             'info'
         );
 
-        $this->log('Soap request '.$function_name.' response: '.parent::__getLastResponse(), 'info');
+        $this->log('Soap request ' . $name . ' response: ' . parent::__getLastResponse(), 'info');
 
         if ($answer === null) {
             $answer = new SoapFault('Data fetching error, check logs', 'Data fetching error, check logs');
@@ -440,12 +450,12 @@ class DependableSoapClient extends SoapClient
         return $answer;
     }
 
-    public static function setLogCallback($callback)
+    public static function setLogCallback($callback): void
     {
         static::$logCallback = $callback;
     }
 
-    protected function getSoapRequest()
+    protected function getSoapRequest(): ?SoapRequest
     {
         if ($this->currentRequest === null) {
             $this->currentRequest = new SoapRequest();
@@ -460,18 +470,18 @@ class DependableSoapClient extends SoapClient
      * @param  int  $debug
      * @param  mixed  $answer
      */
-    protected function debug($debug, $answer)
+    protected function debug(int $debug, mixed $answer): void
     {
         if ($debug & self::DEBUG_REQUEST) {
-            $this->log("Request XML:".$this->formatXmlString($this->__getLastRequest()));
+            $this->log("Request XML:" . $this->formatXmlString($this->__getLastRequest()));
         }
 
         if ($debug & self::DEBUG_RESPONSE) {
-            $this->log("Response XML:".$this->formatXmlString($this->__getLastResponse()));
+            $this->log("Response XML:" . $this->formatXmlString($this->__getLastResponse()));
         }
 
         if ($debug & self::DEBUG_RESPONSE_OBJECT) {
-            $this->log("Response object: ".print_r($answer, true));
+            $this->log("Response object: " . print_r($answer, true));
         }
     }
 
@@ -482,7 +492,7 @@ class DependableSoapClient extends SoapClient
      * @param  string  $xml
      * @return string
      */
-    protected function formatXmlString($xml)
+    protected function formatXmlString(string $xml): string
     {
         // add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
         $xml = preg_replace('/(>)(<)(\/*)/', "$1\n$2$3", $xml);
@@ -514,7 +524,7 @@ class DependableSoapClient extends SoapClient
 
             // pad the line with the required number of leading spaces
             $line = str_pad($token, strlen($token) + $pad, ' ', STR_PAD_LEFT);
-            $result .= $line."\n"; // add to the cumulative result, with linefeed
+            $result .= $line . "\n"; // add to the cumulative result, with linefeed
             $token = strtok("\n"); // get the next token
             $pad += $indent; // update the pad size for subsequent lines
         }
@@ -529,15 +539,16 @@ class DependableSoapClient extends SoapClient
      * @param  string  $password
      * @return SOAPHeader
      */
-    protected function generateBasicAuthenticationHeader($username, $password)
+    protected function generateBasicAuthenticationHeader(string $username, string $password): SoapHeader
     {
+        /** @noinspection HttpUrlsUsage */
         $ns = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd';
 
-        $token = new stdClass;
+        $token = new stdClass();
         $token->Username = new SOAPVar($username, XSD_STRING, null, null, null, $ns);
         $token->Password = new SOAPVar($password, XSD_STRING, null, null, null, $ns);
 
-        $wsec = new stdClass;
+        $wsec = new stdClass();
         $wsec->UsernameToken = new SoapVar($token, SOAP_ENC_OBJECT, null, null, null, $ns);
 
         return new SOAPHeader($ns, 'Security', $wsec, true);
@@ -549,7 +560,7 @@ class DependableSoapClient extends SoapClient
      * @param  string  $message
      * @param  string  $level  one of error, info, trace
      */
-    protected function log($message, $level = 'trace')
+    protected function log(string $message, string $level = 'trace'): void
     {
         if (is_callable(static::$logCallback)) {
             $callback = static::$logCallback;

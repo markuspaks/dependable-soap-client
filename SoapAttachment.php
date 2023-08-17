@@ -12,12 +12,12 @@ class SoapAttachment
         $this->filePath = $filePath;
     }
 
-    public function getContentID()
+    public function getContentID(): string
     {
         return basename($this->filePath);
     }
 
-    public function getFilePath()
+    public function getFilePath(): string
     {
         return $this->filePath;
     }

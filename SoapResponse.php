@@ -7,13 +7,13 @@ use ZBateson\MailMimeParser\Message;
 class SoapResponse
 {
 
-    protected $attachments = [];
+    protected array $attachments = [];
 
-    protected $headers;
+    protected array $headers;
 
-    protected $response;
+    protected string $response;
 
-    protected $xml;
+    protected string $xml;
 
     public function __construct(array $headers, string $response)
     {
@@ -22,19 +22,19 @@ class SoapResponse
         $this->handle();
     }
 
-    public function getXml()
+    public function getXml(): string
     {
         return $this->xml;
     }
 
-    public function getAttachments()
+    public function getAttachments(): array
     {
         return $this->attachments;
     }
 
-    protected function handle()
+    protected function handle(): void
     {
-        if (substr($this->response, 0, 2) === '--') {
+        if (str_starts_with($this->response, '--')) {
             $mailHeader = join("", $this->headers)."\r\n";
 
             $mailMessage = $mailHeader.$this->response;

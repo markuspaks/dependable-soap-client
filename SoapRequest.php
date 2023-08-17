@@ -4,7 +4,7 @@ namespace DependableSoapClient;
 
 class SoapRequest
 {
-    const BOUNDARY = 'MimeBoundaryokoiki';
+    const BOUNDARY = 'MimeBoundaryOkOiKi';
 
     protected ?string $action = null;
 
@@ -24,17 +24,17 @@ class SoapRequest
         return $attachment->getContentID();
     }
 
-    public function setAction($action)
+    public function setAction($action): void
     {
         $this->action = $action;
     }
 
-    public function setHttpAuthentication($username, $password)
+    public function setHttpAuthentication($username, $password): void
     {
         $this->httpAuthentication = ['username' => $username, 'password' => $password];
     }
 
-    public function setXml($xml)
+    public function setXml($xml): void
     {
         $this->xml = $xml;
     }
@@ -56,7 +56,7 @@ class SoapRequest
         $headers[] = 'Content-length: '.mb_strlen($contents);
 
         if (is_array($this->httpAuthentication)) {
-            $header[] = 'Authorization: Basic '.
+            $headers[] = 'Authorization: Basic '.
                 base64_encode($this->httpAuthentication['username'].':'.$this->httpAuthentication['password']);
         }
 
