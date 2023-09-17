@@ -34,7 +34,7 @@ class SoapResponse
 
     protected function handle(): void
     {
-        if (str_starts_with($this->response, '--')) {
+        if (substr($this->response, 0, 2) === '--') {
             $mailHeader = join("", $this->headers)."\r\n";
 
             $mailMessage = $mailHeader.$this->response;
