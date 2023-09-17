@@ -389,8 +389,8 @@ class DependableSoapClient extends SoapClient
      */
     public function __soapCall(
         $name,
-        array $args,
-        ?array $options = null,
+        $args,
+        $options = null,
         $inputHeaders = null,
         &$outputHeaders = null
     ) {
