@@ -19,13 +19,6 @@ class DependableSoapClient extends SoapClient
     public int $debugLevel = 0;
 
     /**
-     * Preload wsdl files when creating the client (before actual request)
-     *
-     * @var bool
-     */
-    public bool $preloadWsdl = true;
-
-    /**
      * SOAP endPoint uri
      *
      * @var ?string
@@ -127,6 +120,7 @@ class DependableSoapClient extends SoapClient
     {
         $options = array_replace_recursive(
             [
+                'preload_wsdl' => false,
                 'cache_wsdl' => $this->wsdlCache,
                 'location' => $this->endPoint,
                 'exceptions' => $this->exceptions
@@ -147,7 +141,7 @@ class DependableSoapClient extends SoapClient
             $this->log('WSDL path: ' . $wsdl);
         }
 
-        if ($this->preloadWsdl === true) {
+        if ($options['preload_wsdl'] === true) {
             $wsdl = $this->preloadWsdl($wsdl, $options);
 
             if ($wsdl === null) {
@@ -249,7 +243,7 @@ class DependableSoapClient extends SoapClient
      * @param  mixed  $args
      * @return mixed
      */
-    public function __call(string $name, $args): mixed
+    public function __call($name, $args)
     {
         $args = [$args]; //This was done in soapCall, but caused issues with wsdl that uses parts
         array_unshift($args, $name);
@@ -267,11 +261,11 @@ class DependableSoapClient extends SoapClient
      * @return string|null
      */
     public function __doRequest(
-        string $request,
-        string $location,
-        string $action,
-        int $version,
-        bool $oneWay = false
+        $request,
+        $location,
+        $action,
+        $version,
+        $oneWay = false
     ): ?string {
         $response = $this->request($location, $request, true);
 
@@ -394,12 +388,12 @@ class DependableSoapClient extends SoapClient
      * @throws SoapFault
      */
     public function __soapCall(
-        string $name,
+        $name,
         array $args,
         ?array $options = null,
         $inputHeaders = null,
         &$outputHeaders = null
-    ): mixed {
+    ) {
         $debug = $this->debugLevel;
 
         if (is_array($options) && isset($options['debug'])) {
@@ -470,7 +464,7 @@ class DependableSoapClient extends SoapClient
      * @param  int  $debug
      * @param  mixed  $answer
      */
-    protected function debug(int $debug, mixed $answer): void
+    protected function debug(int $debug, $answer): void
     {
         if ($debug & self::DEBUG_REQUEST) {
             $this->log("Request XML:" . $this->formatXmlString($this->__getLastRequest()));
